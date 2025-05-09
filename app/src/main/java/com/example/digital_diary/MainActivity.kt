@@ -1,6 +1,5 @@
 package com.example.digital_diary
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,29 +8,24 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.digital_diary.presentation.landing.LandingScreen
+import com.example.digital_diary.presentation.landing.LandingViewModel
 import com.example.digital_diary.presentation.profile.ProfileScreen
 import com.example.digital_diary.presentation.sign_in.GoogleAuthUiClient
 import com.example.digital_diary.presentation.sign_in.SignInScreen
 import com.example.digital_diary.presentation.sign_in.SignInViewModel
 import com.example.digital_diary.ui.theme.Digital_DiaryTheme
 import com.google.android.gms.auth.api.identity.Identity
-import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -48,6 +42,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Digital_DiaryTheme {
+                val context = LocalContext.current
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "sign_in") {
                     composable("sign_in") {
@@ -56,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
                         LaunchedEffect(key1= Unit) {
                             if(googleAuthUiClient.getSignedInUser() != null){
-                                navController.navigate("profile")
+                                navController.navigate("landing")
                             }
                         }
 
@@ -77,10 +72,10 @@ class MainActivity : ComponentActivity() {
                             if (state.isSignInIsSuccessful) {
                                 Toast.makeText(
                                     applicationContext,
-                                    "Sign In successful",
+                                    context.getString(R.string.sign_in_toast),
                                     Toast.LENGTH_LONG,
                                 ).show()
-                                navController.navigate("profile")
+                                navController.navigate("landing")
                                 viewModel.resetState()
                             }
                         }
@@ -99,6 +94,12 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                    composable(route = "landing") {
+                        LandingScreen(
+                            userData = googleAuthUiClient.getSignedInUser(),
+                            navController = navController,
+                        )
+                    }
                     composable(route = "profile") {
                         ProfileScreen(
                             userData = googleAuthUiClient.getSignedInUser(),
@@ -107,10 +108,13 @@ class MainActivity : ComponentActivity() {
                                     googleAuthUiClient.signOut()
                                     Toast.makeText(
                                         applicationContext,
-                                        "Signed Out successful",
+                                        context.getString(R.string.sign_out_toast),
                                         Toast.LENGTH_LONG,
                                     ).show()
-                                    navController.popBackStack()
+                                    navController.navigate("sign_in"){
+                                        popUpTo("sign_in") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
                             }
                         )

@@ -5,6 +5,13 @@
     <string name="sign_up_title">Digital Diary</string>
     <string name="sign_up_secondary">never forget your best memories again</string>
 
+    <string name="sign_in_toast">Sign In successful</string>
+    <string name="sign_out_toast">Sign Out successful</string>
+
     <string name="sign_up_button">Sign Up</string>
     <string name="log_out_button">Log Out</string>
+
+    <string name="landing_subtitle">Keep your feelings alive</string>
+    <string name="add_memory_button">Add Memory</string>
+
 </resources>

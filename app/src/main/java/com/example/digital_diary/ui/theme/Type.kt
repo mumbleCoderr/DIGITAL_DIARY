@@ -28,11 +28,32 @@ val Typography = Typography(
         color = AdditionalColor,
         textAlign = TextAlign.Center,
     ),
+    titleLarge = TextStyle(      // body text
+        fontFamily = HandWriteFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 36.sp,
+        color = ButtonColor,
+        textAlign = TextAlign.Start,
+    ),
+    titleSmall = TextStyle(      // body text
+        fontFamily = HandWriteFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        color = AdditionalColor,
+        textAlign = TextAlign.Start,
+    ),
     labelMedium = TextStyle(      // button text
         fontFamily = HandWriteFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 36.sp,
         color = BackgroundColor,
         textAlign = TextAlign.Center,
+    ),
+     labelSmall = TextStyle(      // input text
+        fontFamily = HandWriteFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        color = AdditionalColor,
+        textAlign = TextAlign.Start,
     ),
 )

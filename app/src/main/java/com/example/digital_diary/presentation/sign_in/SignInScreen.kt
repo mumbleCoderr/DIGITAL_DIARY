@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Button
@@ -72,6 +73,7 @@ fun SignInScreen(
             colors = ButtonDefaults.buttonColors(
                 containerColor = ButtonColor,
             ),
+            shape = RoundedCornerShape(22.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
