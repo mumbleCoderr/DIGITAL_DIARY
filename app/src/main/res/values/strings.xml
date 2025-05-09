@@ -1,4 +1,10 @@
 <resources>
-    <string name="app_name">Digital_Diary</string>
+    <string name="app_name">Digital Diary</string>
     <string name="default_web_client_id">320727381046-tvqsvo13pb8qqg4mvf1tnrt5frm1hra0.apps.googleusercontent.com</string>
+
+    <string name="sign_up_title">Digital Diary</string>
+    <string name="sign_up_secondary">never forget your best memories again</string>
+
+    <string name="sign_up_button">Sign Up</string>
+    <string name="log_out_button">Log Out</string>
 </resources>
