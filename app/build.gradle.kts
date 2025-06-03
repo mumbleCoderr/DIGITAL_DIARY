@@ -65,4 +65,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0")
     implementation("androidx.navigation:navigation-compose:2.5.3")
     implementation("io.coil-kt:coil-compose:2.2.2")
+
+    implementation("androidx.compose.material:material-icons-extended:1.6.5")
 }

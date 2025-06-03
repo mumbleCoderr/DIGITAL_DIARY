@@ -56,4 +56,11 @@ val Typography = Typography(
         color = AdditionalColor,
         textAlign = TextAlign.Start,
     ),
+    displaySmall = TextStyle(      // description text
+        fontFamily = HandWriteFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
+        color = ButtonColor,
+        textAlign = TextAlign.Start,
+    ),
 )
