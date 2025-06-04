@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -52,6 +51,7 @@ import coil.compose.AsyncImage
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
 import com.example.digital_diary.data.MemoryViewModel
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemorySheet
 import com.example.digital_diary.presentation.sign_in.UserData
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
@@ -123,8 +123,8 @@ fun LandingScreen(
         }
         if (memoryState.isAddingMemory) {
             AddMemorySheet(
-                state = memoryState,
-                onEvent = { memoryViewModel.onEvent(it) },
+                memoryState = memoryState,
+                onMemoryEvent = { memoryViewModel.onEvent(it) },
                 sheetState = sheetState,
                 onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) }
             )

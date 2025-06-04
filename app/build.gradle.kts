@@ -72,4 +72,6 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    implementation("io.coil-kt:coil-compose:2.4.0")
 }

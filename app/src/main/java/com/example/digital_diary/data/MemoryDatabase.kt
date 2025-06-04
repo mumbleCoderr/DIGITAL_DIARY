@@ -5,8 +5,9 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [Memory::class],
-    version = 1,
+    version = 2,
 )
+
 abstract class MemoryDatabase: RoomDatabase() {
     abstract val dao: MemoryDao
 }

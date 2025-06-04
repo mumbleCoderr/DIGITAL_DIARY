@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class Memory(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val photoPath: String?,
+    val photoPath: ByteArray,
     val audioPath: String?,
     val description: String?,
     val mood: Int?,

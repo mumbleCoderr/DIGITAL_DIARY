@@ -53,7 +53,7 @@ class MemoryViewModel(
                 _state.update {
                     it.copy(
                         isAddingMemory = false,
-                        photoPath = null,
+                        photoPath = byteArrayOf(),
                         audioPath = null,
                         description = null,
                         mood = null,
