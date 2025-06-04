@@ -1,6 +1,5 @@
 package com.example.digital_diary
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,29 +8,29 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
+import com.example.digital_diary.data.MemoryDatabase
+import com.example.digital_diary.data.MemoryViewModel
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
+import com.example.digital_diary.presentation.landing.LandingScreen
 import com.example.digital_diary.presentation.profile.ProfileScreen
 import com.example.digital_diary.presentation.sign_in.GoogleAuthUiClient
 import com.example.digital_diary.presentation.sign_in.SignInScreen
 import com.example.digital_diary.presentation.sign_in.SignInViewModel
 import com.example.digital_diary.ui.theme.Digital_DiaryTheme
 import com.google.android.gms.auth.api.identity.Identity
-import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -43,20 +42,39 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            MemoryDatabase::class.java,
+            "memories.db"
+        ).build()
+    }
+
+    private val memoryViewModel by viewModels<MemoryViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory{
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return MemoryViewModel(db.dao) as T
+                }
+            }
+        }
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Digital_DiaryTheme {
+                val context = LocalContext.current
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "sign_in") {
                     composable("sign_in") {
-                        val viewModel = viewModel<SignInViewModel>()
-                        val state by viewModel.state.collectAsStateWithLifecycle()
+                        val landingViewModel = viewModel<SignInViewModel>()
+                        val state by landingViewModel.state.collectAsStateWithLifecycle()
 
                         LaunchedEffect(key1= Unit) {
                             if(googleAuthUiClient.getSignedInUser() != null){
-                                navController.navigate("profile")
+                                navController.navigate("landing")
                             }
                         }
 
@@ -68,7 +86,7 @@ class MainActivity : ComponentActivity() {
                                         val signInResult = googleAuthUiClient.signInWithIntent(
                                             intent = result.data ?: return@launch
                                         )
-                                        viewModel.onSignInResult(signInResult)
+                                        landingViewModel.onSignInResult(signInResult)
                                     }
                                 }
                             }
@@ -77,11 +95,11 @@ class MainActivity : ComponentActivity() {
                             if (state.isSignInIsSuccessful) {
                                 Toast.makeText(
                                     applicationContext,
-                                    "Sign In successful",
+                                    context.getString(R.string.sign_in_toast),
                                     Toast.LENGTH_LONG,
                                 ).show()
-                                navController.navigate("profile")
-                                viewModel.resetState()
+                                navController.navigate("landing")
+                                landingViewModel.resetState()
                             }
                         }
 
@@ -99,6 +117,18 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                    composable(route = "landing") {
+                        val addMemoryDialogViewModel = viewModel<AddMemoryDialogViewModel>()
+
+                        LandingScreen(
+                            userData = googleAuthUiClient.getSignedInUser(),
+                            navController = navController,
+                            memoryViewModel = memoryViewModel,
+                            onMemoryEvent = memoryViewModel::onEvent,
+                            addMemoryDialogViewModel = addMemoryDialogViewModel,
+                            onAddMemoryDialogEvent = addMemoryDialogViewModel::onEvent
+                        )
+                    }
                     composable(route = "profile") {
                         ProfileScreen(
                             userData = googleAuthUiClient.getSignedInUser(),
@@ -107,10 +137,13 @@ class MainActivity : ComponentActivity() {
                                     googleAuthUiClient.signOut()
                                     Toast.makeText(
                                         applicationContext,
-                                        "Signed Out successful",
+                                        context.getString(R.string.sign_out_toast),
                                         Toast.LENGTH_LONG,
                                     ).show()
-                                    navController.popBackStack()
+                                    navController.navigate("sign_in"){
+                                        popUpTo("sign_in") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
                             }
                         )
