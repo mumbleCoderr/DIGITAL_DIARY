@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -67,4 +68,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.2.2")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.5")
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 }

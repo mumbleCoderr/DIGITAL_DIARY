@@ -8,18 +8,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
+import com.example.digital_diary.data.MemoryDatabase
+import com.example.digital_diary.data.MemoryViewModel
 import com.example.digital_diary.presentation.landing.LandingScreen
-import com.example.digital_diary.presentation.landing.LandingViewModel
 import com.example.digital_diary.presentation.profile.ProfileScreen
 import com.example.digital_diary.presentation.sign_in.GoogleAuthUiClient
 import com.example.digital_diary.presentation.sign_in.SignInScreen
@@ -37,6 +41,24 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            MemoryDatabase::class.java,
+            "memories.db"
+        ).build()
+    }
+
+    private val memoryViewModel by viewModels<MemoryViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory{
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return MemoryViewModel(db.dao) as T
+                }
+            }
+        }
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -46,8 +68,8 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "sign_in") {
                     composable("sign_in") {
-                        val viewModel = viewModel<SignInViewModel>()
-                        val state by viewModel.state.collectAsStateWithLifecycle()
+                        val landingViewModel = viewModel<SignInViewModel>()
+                        val state by landingViewModel.state.collectAsStateWithLifecycle()
 
                         LaunchedEffect(key1= Unit) {
                             if(googleAuthUiClient.getSignedInUser() != null){
@@ -63,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                         val signInResult = googleAuthUiClient.signInWithIntent(
                                             intent = result.data ?: return@launch
                                         )
-                                        viewModel.onSignInResult(signInResult)
+                                        landingViewModel.onSignInResult(signInResult)
                                     }
                                 }
                             }
@@ -76,7 +98,7 @@ class MainActivity : ComponentActivity() {
                                     Toast.LENGTH_LONG,
                                 ).show()
                                 navController.navigate("landing")
-                                viewModel.resetState()
+                                landingViewModel.resetState()
                             }
                         }
 
@@ -98,6 +120,8 @@ class MainActivity : ComponentActivity() {
                         LandingScreen(
                             userData = googleAuthUiClient.getSignedInUser(),
                             navController = navController,
+                            memoryViewModel = memoryViewModel,
+                            onEvent = memoryViewModel::onEvent
                         )
                     }
                     composable(route = "profile") {

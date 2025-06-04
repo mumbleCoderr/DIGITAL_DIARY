@@ -2,7 +2,6 @@ package com.example.digital_diary.presentation.landing
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,27 +20,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.AddReaction
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -53,25 +50,40 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.digital_diary.R
+import com.example.digital_diary.data.MemoryEvent
+import com.example.digital_diary.data.MemoryViewModel
 import com.example.digital_diary.presentation.sign_in.UserData
-import com.example.digital_diary.ui.theme.AdditionalColor
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandingScreen(
     userData: UserData?,
     navController: NavController,
-    viewModel: LandingViewModel = viewModel<LandingViewModel>()
+    landingViewModel: LandingViewModel = viewModel<LandingViewModel>(),
+    memoryViewModel: MemoryViewModel = viewModel<MemoryViewModel>(),
+    onEvent: (MemoryEvent) -> Unit,
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by landingViewModel.state.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState()
+    val memoryState by memoryViewModel.state.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
             .padding(16.dp)
+            .then(
+                if (memoryState.isAddingMemory) {
+                    Modifier
+                        .graphicsLayer { alpha = 0.99f }
+                        .blur(4.dp)
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Column(
             modifier = Modifier
@@ -89,13 +101,15 @@ fun LandingScreen(
                 item {
                     SearchBar(
                         value = state.searchBarInput,
-                        onValueChange = viewModel::onSearchBarInputChange
+                        onValueChange = landingViewModel::onSearchBarInputChange
                     )
                 }
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     AddMemory(
-                        onAddMemoryClick = { print("TODO ") }
+                        onAddMemoryClick = {
+                            onEvent(MemoryEvent.ShowDialog)
+                        }
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                 }
@@ -106,6 +120,14 @@ fun LandingScreen(
                     Memory()
                 }
             }
+        }
+        if (memoryState.isAddingMemory) {
+            AddMemorySheet(
+                state = memoryState,
+                onEvent = { memoryViewModel.onEvent(it) },
+                sheetState = sheetState,
+                onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) }
+            )
         }
     }
 }
