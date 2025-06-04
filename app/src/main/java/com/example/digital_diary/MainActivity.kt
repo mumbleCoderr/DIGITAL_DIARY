@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import com.example.digital_diary.data.MemoryDatabase
 import com.example.digital_diary.data.MemoryViewModel
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
 import com.example.digital_diary.presentation.landing.LandingScreen
 import com.example.digital_diary.presentation.profile.ProfileScreen
 import com.example.digital_diary.presentation.sign_in.GoogleAuthUiClient
@@ -117,11 +118,15 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable(route = "landing") {
+                        val addMemoryDialogViewModel = viewModel<AddMemoryDialogViewModel>()
+
                         LandingScreen(
                             userData = googleAuthUiClient.getSignedInUser(),
                             navController = navController,
                             memoryViewModel = memoryViewModel,
-                            onEvent = memoryViewModel::onEvent
+                            onMemoryEvent = memoryViewModel::onEvent,
+                            addMemoryDialogViewModel = addMemoryDialogViewModel,
+                            onAddMemoryDialogEvent = addMemoryDialogViewModel::onEvent
                         )
                     }
                     composable(route = "profile") {

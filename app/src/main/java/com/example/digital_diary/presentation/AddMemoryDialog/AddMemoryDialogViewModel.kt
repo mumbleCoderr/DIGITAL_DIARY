@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class AddMemoryDialogViewModel(): ViewModel() {
     private val _state = MutableStateFlow(AddMemoryDialogState())
@@ -12,8 +13,40 @@ class AddMemoryDialogViewModel(): ViewModel() {
 
     fun onEvent(event: AddMemoryDialogEvent){
         when(event){
-            is AddMemoryDialogEvent.ShowPhotoPicker -> {
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            is AddMemoryDialogEvent.SetCurrentAudioPath -> {
+                _state.update {
+                    it.copy(
+                        currentAudioPath = event.currentAudioPath
+                    )
+                }
+            }
+            AddMemoryDialogEvent.StartRecording -> {
+                _state.update {
+                    it.copy(
+                        isRecording = true
+                    )
+                }
+            }
+            AddMemoryDialogEvent.StopRecording -> {
+                _state.update {
+                    it.copy(
+                        isRecording = false
+                    )
+                }
+            }
+            AddMemoryDialogEvent.StartPlaying -> {
+                _state.update {
+                    it.copy(
+                        isPlaying = true
+                    )
+                }
+            }
+            AddMemoryDialogEvent.StopPlaying -> {
+                _state.update {
+                    it.copy(
+                        isPlaying = false
+                    )
+                }
             }
         }
     }

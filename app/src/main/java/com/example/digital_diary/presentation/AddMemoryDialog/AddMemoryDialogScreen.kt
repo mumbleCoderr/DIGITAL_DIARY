@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
@@ -80,6 +82,8 @@ fun AddMemorySheet(
         sheetState = sheetState,
         containerColor = BackgroundColor,
         scrimColor = Color.Transparent,
+        modifier = Modifier
+            .fillMaxHeight(0.90f)
     ) {
         Column(
             modifier = Modifier
@@ -96,9 +100,6 @@ fun AddMemorySheet(
                         style = MaterialTheme.typography.titleSmall,
                     )
                 },
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done
-                ),
                 colors = TextFieldDefaults.textFieldColors(
                     containerColor = BackgroundColor,
                     focusedIndicatorColor = Color.Transparent,
@@ -110,8 +111,10 @@ fun AddMemorySheet(
                     .weight(1f)
             )
             MediaPicker(
-                onEvent = onMemoryEvent,
-                state = memoryState,
+                onMemoryEvent = onMemoryEvent,
+                memoryState = memoryState,
+                onAddMemoryDialogEvent = onAddMemoryDialogEvent,
+                addMemoryDialogState = addMemoryDialogState
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -137,11 +140,12 @@ fun AddMemorySheet(
 
 @Composable
 fun MediaPicker(
-    onEvent: (MemoryEvent) -> Unit,
-    state: MemoryState,
+    onMemoryEvent: (MemoryEvent) -> Unit,
+    memoryState: MemoryState,
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
+    addMemoryDialogState: AddMemoryDialogState,
 ) {
     val context = LocalContext.current
-
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -151,16 +155,12 @@ fun MediaPicker(
                         inputStream.readBytes()
                     }
                 if (photoByteArray != null) {
-                    onEvent(MemoryEvent.SetPhotoPath(photoByteArray))
+                    onMemoryEvent(MemoryEvent.SetPhotoPath(photoByteArray))
                 }
             }
         }
     )
-
     val voiceRecorder = remember { VoiceRecorder(context) }
-    var isRecording by remember { mutableStateOf(false) }
-    var currentAudioPath by remember { mutableStateOf<String?>(null) }
-
     val micPermission = android.Manifest.permission.RECORD_AUDIO
     val micPermissionGranted = remember {
         mutableStateOf(
@@ -168,66 +168,63 @@ fun MediaPicker(
                     context.checkSelfPermission(micPermission)
         )
     }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
             micPermissionGranted.value = granted
         }
     )
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(265.dp)
-    ) {
-        if (state.photoPath.isNotEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                ) {
-                    Image(
-                        bitmap = byteArrayToBitmap(state.photoPath).asImageBitmap(),
-                        contentDescription = "photo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(22.dp))
-                    )
-                    IconButton(
-                        onClick = { onEvent(MemoryEvent.SetPhotoPath(byteArrayOf())) },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "remove photo",
-                            tint = Color.White
-                        )
-                    }
 
-                }
+    if (memoryState.photoPath.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
+            Image(
+                bitmap = byteArrayToBitmap(memoryState.photoPath).asImageBitmap(),
+                contentDescription = "photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+            )
+            IconButton(
+                onClick = { onMemoryEvent(MemoryEvent.SetPhotoPath(byteArrayOf())) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "remove photo",
+                    tint = Color.White
+                )
             }
         }
-        if (state.audioPath != null || state.mood != null) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
+    }
+    if (memoryState.audioPath != null || memoryState.mood != null) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (memoryState.audioPath != null) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .fillMaxWidth(0.5f)
+                        .fillMaxHeight()
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .fillMaxHeight()
+                            .fillMaxSize()
                             .clip(RoundedCornerShape(22.dp))
                             .background(ThirdColor),
                         verticalAlignment = Alignment.CenterVertically
@@ -236,16 +233,31 @@ fun MediaPicker(
                             modifier = Modifier
                                 .size(64.dp),
                             onClick = {
-                                val mediaPlayer = MediaPlayer().apply {
-                                    setDataSource(state.audioPath)
-                                    prepare()
-                                    start()
+                                if (mediaPlayer == null) {
+                                    mediaPlayer = MediaPlayer().apply {
+                                        setDataSource(addMemoryDialogState.currentAudioPath)
+                                        prepare()
+                                        setOnCompletionListener {
+                                            onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                                            release()
+                                            mediaPlayer = null
+                                        }
+                                    }
+                                }
+                                mediaPlayer?.let { player ->
+                                    if (player.isPlaying) {
+                                        player.pause()
+                                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                                    } else {
+                                        player.start()
+                                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPlaying)
+                                    }
                                 }
                             }
                         ) {
                             Image(
-                                imageVector = Icons.Outlined.PlayArrow,
-                                contentDescription = "play",
+                                imageVector = if (!addMemoryDialogState.isPlaying) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                                contentDescription = if (addMemoryDialogState.isPlaying) "Pause" else "Play",
                                 modifier = Modifier
                                     .fillMaxSize()
                             )
@@ -256,18 +268,37 @@ fun MediaPicker(
                             contentDescription = "sound waves",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(86.dp)
+                                .size(78.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    IconButton(
+                        onClick = { onMemoryEvent(MemoryEvent.SetAudioPath(null)) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            .size(22.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "remove photo",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            if (memoryState.mood != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
                             .clip(RoundedCornerShape(22.dp))
                             .background(ThirdColor),
                         verticalAlignment = Alignment.CenterVertically
-                    ){
+                    ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -291,6 +322,20 @@ fun MediaPicker(
                             )
                         }
                     }
+                    IconButton(
+                        onClick = { onMemoryEvent(MemoryEvent.SetMood(null)) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            .size(22.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "remove photo",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -306,27 +351,31 @@ fun MediaPicker(
             modifier = Modifier
                 .size(64.dp),
             onClick = {
-                if (!isRecording) {
+                if (!addMemoryDialogState.isRecording) {
                     if (micPermissionGranted.value) {
-                        currentAudioPath = voiceRecorder.startRecording()
-                        isRecording = true
+                        onAddMemoryDialogEvent(
+                            AddMemoryDialogEvent.SetCurrentAudioPath(
+                                voiceRecorder.startRecording()
+                            )
+                        )
+                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StartRecording)
                     } else {
                         permissionLauncher.launch(micPermission)
                     }
                 } else {
                     val path = voiceRecorder.stopRecording()
-                    isRecording = false
+                    onAddMemoryDialogEvent(AddMemoryDialogEvent.StopRecording)
                     if (path != null) {
-                        onEvent(MemoryEvent.SetAudioPath(path))
+                        onMemoryEvent(MemoryEvent.SetAudioPath(path))
                     }
                 }
             }
         ) {
-            Image(
+            Icon(
                 imageVector = Icons.Outlined.Mic,
                 contentDescription = "mic",
-                modifier = Modifier
-                    .fillMaxSize()
+                tint = if (addMemoryDialogState.isRecording) Color.Red else Color.Black,
+                modifier = Modifier.fillMaxSize()
             )
         }
         IconButton(

@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +52,8 @@ import coil.compose.AsyncImage
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
 import com.example.digital_diary.data.MemoryViewModel
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogEvent
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemorySheet
 import com.example.digital_diary.presentation.sign_in.UserData
 import com.example.digital_diary.ui.theme.BackgroundColor
@@ -64,11 +67,14 @@ fun LandingScreen(
     navController: NavController,
     landingViewModel: LandingViewModel = viewModel<LandingViewModel>(),
     memoryViewModel: MemoryViewModel = viewModel<MemoryViewModel>(),
-    onEvent: (MemoryEvent) -> Unit,
+    addMemoryDialogViewModel: AddMemoryDialogViewModel = viewModel<AddMemoryDialogViewModel>(),
+    onMemoryEvent: (MemoryEvent) -> Unit,
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
 ) {
     val state by landingViewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
     val memoryState by memoryViewModel.state.collectAsStateWithLifecycle()
+    val addMemoryDialogState by addMemoryDialogViewModel.state.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -108,7 +114,7 @@ fun LandingScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     AddMemory(
                         onAddMemoryClick = {
-                            onEvent(MemoryEvent.ShowDialog)
+                            onMemoryEvent(MemoryEvent.ShowDialog)
                         }
                     )
                     Spacer(modifier = Modifier.height(32.dp))
@@ -126,7 +132,9 @@ fun LandingScreen(
                 memoryState = memoryState,
                 onMemoryEvent = { memoryViewModel.onEvent(it) },
                 sheetState = sheetState,
-                onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) }
+                onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) },
+                addMemoryDialogState = addMemoryDialogState,
+                onAddMemoryDialogEvent = onAddMemoryDialogEvent
             )
         }
     }
