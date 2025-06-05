@@ -48,6 +48,21 @@ class AddMemoryDialogViewModel(): ViewModel() {
                     )
                 }
             }
+
+            AddMemoryDialogEvent.HideDialog -> {
+                _state.update {
+                    it.copy(
+                        isAddingMood = false
+                    )
+                }
+            }
+            AddMemoryDialogEvent.ShowDialog -> {
+                _state.update {
+                    it.copy(
+                        isAddingMood = true
+                    )
+                }
+            }
         }
     }
 }

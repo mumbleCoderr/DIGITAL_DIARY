@@ -6,4 +6,5 @@ data class AddMemoryDialogState(
     val isRecording: Boolean = false,
     val currentAudioPath: String? = null,
     val isPlaying: Boolean = false,
+    val isAddingMood: Boolean = false,
 )

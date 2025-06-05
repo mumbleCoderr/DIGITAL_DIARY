@@ -6,4 +6,6 @@ sealed interface AddMemoryDialogEvent {
     data class SetCurrentAudioPath(val currentAudioPath: String): AddMemoryDialogEvent
     object StartPlaying: AddMemoryDialogEvent
     object StopPlaying: AddMemoryDialogEvent
+    object ShowDialog: AddMemoryDialogEvent
+    object HideDialog: AddMemoryDialogEvent
 }

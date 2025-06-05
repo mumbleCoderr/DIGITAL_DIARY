@@ -9,8 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,6 +35,7 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +47,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +63,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.room.util.copy
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
 import com.example.digital_diary.data.MemoryState
@@ -114,7 +122,8 @@ fun AddMemorySheet(
                 onMemoryEvent = onMemoryEvent,
                 memoryState = memoryState,
                 onAddMemoryDialogEvent = onAddMemoryDialogEvent,
-                addMemoryDialogState = addMemoryDialogState
+                addMemoryDialogState = addMemoryDialogState,
+                onDismiss = { onAddMemoryDialogEvent(AddMemoryDialogEvent.HideDialog) }
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -138,12 +147,68 @@ fun AddMemorySheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MoodPickerDialog(
+    onDismiss: () -> Unit,
+    addMemoryDialogState: AddMemoryDialogState,
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
+    memoryState: MemoryState,
+    onMemoryEvent: (MemoryEvent) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        title = {
+            Text(
+                text = "what is your mood?",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    color = ThirdColor,
+                    textAlign = TextAlign.Center,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+        },
+        containerColor = ButtonColor,
+        text = {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(memoryState.moodList.size) { index ->
+                    IconButton(
+                        onClick = {
+                            onMemoryEvent(MemoryEvent.SetMood(index))
+                            onAddMemoryDialogEvent(AddMemoryDialogEvent.HideDialog)
+                        },
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                    ) {
+                        Image(
+                            painter = painterResource(id = memoryState.moodList[index]),
+                            contentDescription = "Mood",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaPicker(
     onMemoryEvent: (MemoryEvent) -> Unit,
     memoryState: MemoryState,
     onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
     addMemoryDialogState: AddMemoryDialogState,
+    onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
     val imagePicker = rememberLauncherForActivityResult(
@@ -206,6 +271,15 @@ fun MediaPicker(
                 )
             }
         }
+    }
+    if (addMemoryDialogState.isAddingMood) {
+        MoodPickerDialog(
+            onDismiss = onDismiss,
+            addMemoryDialogState = addMemoryDialogState,
+            onAddMemoryDialogEvent = onAddMemoryDialogEvent,
+            memoryState = memoryState,
+            onMemoryEvent = onMemoryEvent,
+        )
     }
     if (memoryState.audioPath != null || memoryState.mood != null) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -306,20 +380,15 @@ fun MediaPicker(
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.love),
-                                contentDescription = "mood",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(64.dp)
-                            )
-                            Image(
-                                painter = painterResource(id = R.drawable.love),
-                                contentDescription = "mood",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(64.dp)
-                            )
+                            repeat(2) {
+                                Image(
+                                    painter = painterResource(memoryState.moodList[memoryState.mood]),
+                                    contentDescription = "mood",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                )
+                            }
                         }
                     }
                     IconButton(
@@ -381,7 +450,13 @@ fun MediaPicker(
         IconButton(
             modifier = Modifier
                 .size(64.dp),
-            onClick = { TODO() }
+            onClick = {
+                if (addMemoryDialogState.isAddingMood) {
+                    onAddMemoryDialogEvent(AddMemoryDialogEvent.HideDialog)
+                } else {
+                    onAddMemoryDialogEvent(AddMemoryDialogEvent.ShowDialog)
+                }
+            }
         ) {
             Image(
                 imageVector = Icons.Outlined.EmojiEmotions,

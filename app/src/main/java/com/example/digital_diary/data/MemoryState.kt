@@ -1,5 +1,7 @@
 package com.example.digital_diary.data
 
+import com.example.digital_diary.R
+
 data class MemoryState(
     val memories: List<Memory> = emptyList(),
     val photoPath: ByteArray = byteArrayOf(),
@@ -7,4 +9,12 @@ data class MemoryState(
     val description: String? = null,
     val mood: Int? = null,
     val isAddingMemory: Boolean = false,
+    val moodList: List<Int> = listOf(
+        R.drawable.love,
+        R.drawable.cry,
+        R.drawable.mid,
+        R.drawable.sad,
+        R.drawable.angry,
+        R.drawable.superhappy,
+    )
 )
