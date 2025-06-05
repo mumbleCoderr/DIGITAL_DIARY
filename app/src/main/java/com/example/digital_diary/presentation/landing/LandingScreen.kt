@@ -1,6 +1,9 @@
 package com.example.digital_diary.presentation.landing
 
 import android.app.Activity
+import android.graphics.BitmapFactory
+import android.media.MediaPlayer
+import android.widget.Space
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,10 +39,14 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -52,15 +60,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.digital_diary.R
+import com.example.digital_diary.data.Memory
 import com.example.digital_diary.data.MemoryEvent
+import com.example.digital_diary.data.MemoryState
 import com.example.digital_diary.data.MemoryViewModel
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogEvent
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogState
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemorySheet
+import com.example.digital_diary.presentation.AddMemoryDialog.AudioBox
+import com.example.digital_diary.presentation.AddMemoryDialog.MoodBox
 import com.example.digital_diary.presentation.sign_in.UserData
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
+import com.example.digital_diary.utils.byteArrayToBitmap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +87,7 @@ fun LandingScreen(
     onMemoryEvent: (MemoryEvent) -> Unit,
     onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
     activity: Activity,
+    onLandingEvent: (LandingEvent) -> Unit,
 ) {
     val state by landingViewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
@@ -110,7 +125,7 @@ fun LandingScreen(
                 item {
                     SearchBar(
                         value = state.searchBarInput,
-                        onValueChange = landingViewModel::onSearchBarInputChange
+                        onValueChange = {}/*landingViewModel::onSearchBarInputChange*/
                     )
                 }
                 item {
@@ -122,11 +137,14 @@ fun LandingScreen(
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                 }
-                item {
-                    Memory()
-                }
-                item {
-                    Memory()
+                itemsIndexed(memoryState.memories) { _, memory ->
+                    Memory(
+                        memory = memory,
+                        memoryState = memoryState,
+                        addMemoryDialogState = addMemoryDialogState,
+                        onAddMemoryDialogEvent = onAddMemoryDialogEvent,
+                        onMemoryEvent = onMemoryEvent
+                    )
                 }
             }
         }
@@ -238,120 +256,98 @@ fun AddMemory(
 
 @Composable
 fun Memory(
-
+    memory: Memory,
+    memoryState: MemoryState,
+    onMemoryEvent: (MemoryEvent) -> Unit,
+    addMemoryDialogState: AddMemoryDialogState,
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(22.dp)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
+                .then(if (memory.photoPath != null) Modifier.height(160.dp) else Modifier)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.b_krajobraz1),
-                contentDescription = "memory main photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .clip(RoundedCornerShape(22.dp))
-            )
+            if (memory.photoPath != null) {
+                Image(
+                    bitmap = BitmapFactory.decodeFile(memory.photoPath).asImageBitmap(),
+                    contentDescription = "memory main photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .clip(RoundedCornerShape(22.dp))
+                )
+            }
             Spacer(modifier = Modifier.width(8.dp))
-            MemoryRightSection()
+            MemoryRightSection(
+                memory = memory,
+                onMemoryEvent = onMemoryEvent,
+                addMemoryDialogState = addMemoryDialogState,
+                onAddMemoryDialogEvent = onAddMemoryDialogEvent,
+            )
         }
         Spacer(modifier = Modifier.height(26.dp))
-        MemoryBottomSection()
+        MemoryBottomSection(memory)
     }
-    Spacer(modifier = Modifier.height(32.dp))
+    Spacer(modifier = Modifier.height(64.dp))
 }
 
 @Composable
 fun MemoryRightSection(
-
+    memory: Memory,
+    onMemoryEvent: (MemoryEvent) -> Unit,
+    addMemoryDialogState: AddMemoryDialogState,
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit
 ) {
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
     Column(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxHeight()
+            .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        MemoryRightSectionAudioChip(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(8.dp))
-        MemoryRightSectionMoodChip(mood = R.drawable.love, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-fun MemoryRightSectionMoodChip(
-    mood: Int?,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(ThirdColor),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Image(
-            painter = painterResource(id = mood!!),
-            contentDescription = "mood",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(64.dp)
-        )
-        Image(
-            painter = painterResource(id = mood!!),
-            contentDescription = "mood",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(64.dp)
-        )
-    }
-}
-
-@Composable
-fun MemoryRightSectionAudioChip(
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(ThirdColor)
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.4f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(BackgroundColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                imageVector = Icons.Outlined.Mic,
-                contentDescription = "image",
-                modifier = Modifier
-                    .size(42.dp)
+        if (memory.audioPath != null) {
+            AudioBox(
+                isPlaying = addMemoryDialogState.isPlaying,
+                onPlayPauseToggle = {
+                    if (mediaPlayer == null) {
+                        mediaPlayer = MediaPlayer().apply {
+                            setDataSource(memory.audioPath)
+                            prepare()
+                            setOnCompletionListener {
+                                onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                                release()
+                                mediaPlayer = null
+                            }
+                        }
+                    }
+                    mediaPlayer?.let { player ->
+                        if (player.isPlaying) {
+                            player.pause()
+                            onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                        } else {
+                            player.start()
+                            onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPlaying)
+                        }
+                    }
+                },
+                onRemoveAudio = {  },
+                showRemoveButton = false,
+                fillMaxWidth = true,
+                fillMaxHeight = false
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(),
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.sound_waves),
-                contentDescription = "sound waves",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(76.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (memory.mood != null) {
+            MoodBox(
+                mood = memory.mood,
+                onRemoveMood = { onMemoryEvent(MemoryEvent.SetMood(null)) },
+                showRemoveButton = false
             )
         }
     }
@@ -359,35 +355,38 @@ fun MemoryRightSectionAudioChip(
 
 @Composable
 fun MemoryBottomSection(
-
+    memory: Memory
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp, end = 8.dp),
     ) {
-        Text(
-            text = "We are thrilled to present our journal app design concept.\n" +
-
-                    "Explore is an innovative journal app concept that seamlessly combines elegant design with powerful functionality to enhance the user's journaling experience. The app is meticulously crafted to cater to users seeking a visually appealing and intuitive platform to capture their thoughts, emotions, and memories.\n" +
-
-                    "This innovative application offers users an intuitive interface for effortless navigation and a personalized experience through customizable themes and multimedia integration.",
-            style = MaterialTheme.typography.displaySmall,
-            maxLines = 5,
-            overflow = TextOverflow.Ellipsis
-        )
+        if (memory.description != null) {
+            Text(
+                text = memory.description,
+                style = MaterialTheme.typography.displaySmall,
+                maxLines = 5,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(ThirdColor)
-                .padding(8.dp),
+                .padding(
+                    top = 8.dp,
+                    bottom = 8.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-        ){
+        ) {
             Text(
-                text = "Warszawa, 03 czerwca 2025",
+                text = "${memory.city ?: ""}, ${memory.date}",
                 style = MaterialTheme.typography.titleSmall
             )
             Image(

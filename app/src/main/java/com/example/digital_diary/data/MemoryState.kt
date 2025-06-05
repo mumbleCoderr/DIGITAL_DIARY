@@ -6,7 +6,7 @@ import java.util.Date
 
 data class MemoryState(
     val memories: List<Memory> = emptyList(),
-    val photoPath: ByteArray = byteArrayOf(),
+    val photoPath: String? = null,
     val audioPath: String? = null,
     val description: String? = null,
     val mood: Int? = null,

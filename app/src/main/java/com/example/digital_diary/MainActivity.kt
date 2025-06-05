@@ -25,6 +25,7 @@ import com.example.digital_diary.data.MemoryDatabase
 import com.example.digital_diary.data.MemoryViewModel
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
 import com.example.digital_diary.presentation.landing.LandingScreen
+import com.example.digital_diary.presentation.landing.LandingViewModel
 import com.example.digital_diary.presentation.profile.ProfileScreen
 import com.example.digital_diary.presentation.sign_in.GoogleAuthUiClient
 import com.example.digital_diary.presentation.sign_in.SignInScreen
@@ -119,6 +120,7 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(route = "landing") {
                         val addMemoryDialogViewModel = viewModel<AddMemoryDialogViewModel>()
+                        val landingViewModel = viewModel<LandingViewModel>()
 
                         LandingScreen(
                             userData = googleAuthUiClient.getSignedInUser(),
@@ -127,7 +129,9 @@ class MainActivity : ComponentActivity() {
                             onMemoryEvent = memoryViewModel::onEvent,
                             addMemoryDialogViewModel = addMemoryDialogViewModel,
                             onAddMemoryDialogEvent = addMemoryDialogViewModel::onEvent,
-                            activity = this@MainActivity
+                            activity = this@MainActivity,
+                            landingViewModel = landingViewModel,
+                            onLandingEvent = landingViewModel::onEvent
                         )
                     }
                     composable(route = "profile") {

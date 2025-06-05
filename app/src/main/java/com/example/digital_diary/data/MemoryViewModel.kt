@@ -10,12 +10,19 @@ import kotlinx.coroutines.launch
 
 class MemoryViewModel(
     private val dao: MemoryDao,
-
-    ) : ViewModel() {
+) : ViewModel() {
     /*private val _memories = */
     private val _state = MutableStateFlow(MemoryState())
     val state =
         _state.asStateFlow() // jak nie bedzie dzialac wyszukiwanie to TODO combine z _memories
+
+    init {
+        viewModelScope.launch {
+            dao.getMemories().collect { memoriesFromDb ->
+                _state.update { it.copy(memories = memoriesFromDb) }
+            }
+        }
+    }
 
     fun onEvent(event: MemoryEvent) {
         when (event) {
@@ -57,7 +64,7 @@ class MemoryViewModel(
                 _state.update {
                     it.copy(
                         isAddingMemory = false,
-                        photoPath = byteArrayOf(),
+                        photoPath = null,
                         audioPath = null,
                         description = null,
                         mood = null,

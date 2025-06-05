@@ -17,4 +17,7 @@ interface MemoryDao {
 
     @Query("SELECT * FROM Memory WHERE description LIKE '%' || :word || '%'")
     fun getMemoriesWithMatchingWord(word: String): Flow<List<Memory>>
+
+    @Query("SELECT * FROM Memory")
+    fun getMemories(): Flow<List<Memory>>
 }
