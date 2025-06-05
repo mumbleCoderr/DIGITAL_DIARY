@@ -68,6 +68,8 @@ class MemoryViewModel(
                         audioPath = null,
                         description = null,
                         mood = null,
+                        city = null,
+                        date = null
                     )
                 }
             }
@@ -124,6 +126,19 @@ class MemoryViewModel(
                 _state.update {
                     it.copy(
                         date = event.date
+                    )
+                }
+            }
+
+            MemoryEvent.ClearMemory -> {
+                _state.update {
+                    it.copy(
+                        photoPath = null,
+                        audioPath = null,
+                        description = null,
+                        mood = null,
+                        city = null,
+                        date = null
                     )
                 }
             }

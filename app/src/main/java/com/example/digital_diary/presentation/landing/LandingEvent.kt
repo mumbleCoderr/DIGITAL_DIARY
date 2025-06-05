@@ -7,4 +7,5 @@ sealed interface LandingEvent {
     data class SetSearchBarInput(val searchBarInput: String): LandingEvent
     object StartPlaying: LandingEvent
     object StopPlaying: LandingEvent
+    data class SetMemoryToEdit(val id: Int?): LandingEvent
 }
