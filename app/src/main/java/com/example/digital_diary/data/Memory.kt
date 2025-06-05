@@ -2,6 +2,8 @@ package com.example.digital_diary.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.LocalDate
+import java.util.Date
 
 @Entity
 data class Memory(
@@ -11,4 +13,6 @@ data class Memory(
     val audioPath: String?,
     val description: String?,
     val mood: Int?,
+    val city: String?,
+    val date: String?,
 )

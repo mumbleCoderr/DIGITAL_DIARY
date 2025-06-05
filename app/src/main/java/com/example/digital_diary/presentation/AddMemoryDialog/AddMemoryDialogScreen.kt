@@ -1,5 +1,7 @@
 package com.example.digital_diary.presentation.AddMemoryDialog
 
+import android.app.Activity
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.widget.Space
@@ -75,6 +77,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.room.util.copy
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
@@ -82,9 +85,11 @@ import com.example.digital_diary.data.MemoryState
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
+import com.example.digital_diary.utils.LocationUtils
 import com.example.digital_diary.utils.VoiceRecorder
 import com.example.digital_diary.utils.byteArrayToBitmap
 import com.example.digital_diary.utils.drawTextOnBottom
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,8 +99,27 @@ fun AddMemorySheet(
     sheetState: SheetState,
     onDismiss: () -> Unit,
     addMemoryDialogState: AddMemoryDialogState,
-    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
+    activity: Activity,
 ) {
+    val context = LocalContext.current
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            if (granted) {
+                LocationUtils.getLastKnownLocation(activity) { location ->
+                    val cityName = LocationUtils.getCityName(context, location)
+                    onMemoryEvent(MemoryEvent.SetCity(cityName))
+                    onMemoryEvent(MemoryEvent.SaveMemory)
+                    onDismiss()
+                }
+            } else {
+                onMemoryEvent(MemoryEvent.SaveMemory)
+                onDismiss()
+            }
+        }
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -138,8 +162,21 @@ fun AddMemorySheet(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    onMemoryEvent(MemoryEvent.SaveMemory)
-                    onDismiss()
+                    if (ActivityCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        LocationUtils.getLastKnownLocation(activity) { location ->
+                            val cityName = LocationUtils.getCityName(context, location)
+                            onMemoryEvent(MemoryEvent.SetCity(cityName))
+                            onMemoryEvent(MemoryEvent.SetDate(LocalDate.now().toString()))
+                            onMemoryEvent(MemoryEvent.SaveMemory)
+                            onDismiss()
+                        }
+                    } else {
+                        locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonColor,

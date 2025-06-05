@@ -1,5 +1,6 @@
 package com.example.digital_diary.presentation.landing
 
+import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -70,6 +72,7 @@ fun LandingScreen(
     addMemoryDialogViewModel: AddMemoryDialogViewModel = viewModel<AddMemoryDialogViewModel>(),
     onMemoryEvent: (MemoryEvent) -> Unit,
     onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
+    activity: Activity,
 ) {
     val state by landingViewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
@@ -134,7 +137,8 @@ fun LandingScreen(
                 sheetState = sheetState,
                 onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) },
                 addMemoryDialogState = addMemoryDialogState,
-                onAddMemoryDialogEvent = onAddMemoryDialogEvent
+                onAddMemoryDialogEvent = onAddMemoryDialogEvent,
+                activity = activity
             )
         }
     }

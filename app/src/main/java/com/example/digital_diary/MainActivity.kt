@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             MemoryDatabase::class.java,
             "memories.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     private val memoryViewModel by viewModels<MemoryViewModel>(
@@ -126,7 +126,8 @@ class MainActivity : ComponentActivity() {
                             memoryViewModel = memoryViewModel,
                             onMemoryEvent = memoryViewModel::onEvent,
                             addMemoryDialogViewModel = addMemoryDialogViewModel,
-                            onAddMemoryDialogEvent = addMemoryDialogViewModel::onEvent
+                            onAddMemoryDialogEvent = addMemoryDialogViewModel::onEvent,
+                            activity = this@MainActivity
                         )
                     }
                     composable(route = "profile") {
