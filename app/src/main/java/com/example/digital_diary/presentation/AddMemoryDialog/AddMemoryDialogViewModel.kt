@@ -63,6 +63,28 @@ class AddMemoryDialogViewModel(): ViewModel() {
                     )
                 }
             }
+
+            AddMemoryDialogEvent.StartPainting -> {
+                _state.update {
+                    it.copy(
+                        isPainting = true
+                    )
+                }
+            }
+            AddMemoryDialogEvent.StopPainting -> {
+                _state.update {
+                    it.copy(
+                        isPainting = false
+                    )
+                }
+            }
+            is AddMemoryDialogEvent.InputTextOnPhoto -> {
+                _state.update {
+                    it.copy(
+                        paintedText = event.textOnPhoto
+                    )
+                }
+            }
         }
     }
 }

@@ -8,4 +8,8 @@ sealed interface AddMemoryDialogEvent {
     object StopPlaying: AddMemoryDialogEvent
     object ShowDialog: AddMemoryDialogEvent
     object HideDialog: AddMemoryDialogEvent
+
+    object StartPainting: AddMemoryDialogEvent
+    object StopPainting: AddMemoryDialogEvent
+    data class InputTextOnPhoto(val textOnPhoto: String): AddMemoryDialogEvent
 }

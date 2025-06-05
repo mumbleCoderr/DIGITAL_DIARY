@@ -1,6 +1,8 @@
 package com.example.digital_diary.presentation.AddMemoryDialog
 
+import android.graphics.Bitmap
 import android.media.MediaPlayer
+import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -35,6 +38,8 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -59,12 +65,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierInfo
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.room.util.copy
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
@@ -74,6 +84,7 @@ import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
 import com.example.digital_diary.utils.VoiceRecorder
 import com.example.digital_diary.utils.byteArrayToBitmap
+import com.example.digital_diary.utils.drawTextOnBottom
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +107,6 @@ fun AddMemorySheet(
         Column(
             modifier = Modifier
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TextField(
                 value = memoryState.description ?: "",
@@ -241,19 +251,106 @@ fun MediaPicker(
     )
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
+    if (addMemoryDialogState.isPainting && memoryState.photoPath.isNotEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            OutlinedTextField(
+                value = addMemoryDialogState.paintedText,
+                onValueChange = { onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(it)) },
+                label = {
+                    Text(
+                        text = "Text on photo",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
+                textStyle = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.fillMaxWidth()
+            )
 
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = {
+                        val originalBitmap = byteArrayToBitmap(memoryState.photoPath)
+                        val modifiedBitmap = drawTextOnBottom(
+                            bitmap = originalBitmap,
+                            text = addMemoryDialogState.paintedText
+                        )
+                        val stream = java.io.ByteArrayOutputStream()
+                        modifiedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                        val updatedByteArray = stream.toByteArray()
+                        onMemoryEvent(MemoryEvent.SetPhotoPath(updatedByteArray))
+                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
+                        onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(""))
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ButtonColor,
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(0.5f)
+                ) {
+                    Text(
+                        text = "Apply",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 20.sp
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(""))
+                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ButtonColor,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        text = "Decline",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 20.sp
+                        )
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
     if (memoryState.photoPath.isNotEmpty()) {
+        val bitmap = byteArrayToBitmap(memoryState.photoPath)
+        val imageWidth = bitmap.width.toFloat()
+
+        val configuration = LocalConfiguration.current
+        val screenWidthDp = configuration.screenWidthDp.dp
+        val density = LocalDensity.current
+        val screenWidthPx = with(density) { screenWidthDp.toPx() }
+        val threeQuartersScreenPx = screenWidthPx * 0.75f
+
+        val contentScale =
+            if (imageWidth > threeQuartersScreenPx) ContentScale.FillBounds else ContentScale.Fit
+        val imageAlignment =
+            if (imageWidth > threeQuartersScreenPx) Alignment.Center else Alignment.CenterStart
+
         Box(
             modifier = Modifier
-                .fillMaxWidth()
                 .height(200.dp)
         ) {
             Image(
-                bitmap = byteArrayToBitmap(memoryState.photoPath).asImageBitmap(),
+                bitmap = bitmap.asImageBitmap(),
                 contentDescription = "photo",
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
+                    .align(imageAlignment)
                     .clip(RoundedCornerShape(22.dp))
             )
             IconButton(
@@ -272,6 +369,7 @@ fun MediaPicker(
             }
         }
     }
+
     if (addMemoryDialogState.isAddingMood) {
         MoodPickerDialog(
             onDismiss = onDismiss,
@@ -485,12 +583,16 @@ fun MediaPicker(
             modifier = Modifier
                 .size(64.dp),
             onClick = {
-
+                if (!addMemoryDialogState.isPainting && memoryState.photoPath.isNotEmpty()) {
+                    onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPainting)
+                } else {
+                    onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
+                }
             }
         ) {
             Image(
-                imageVector = Icons.Outlined.PhotoCamera,
-                contentDescription = "photo camera",
+                imageVector = Icons.Outlined.TextFields,
+                contentDescription = "title",
                 modifier = Modifier
                     .fillMaxSize()
             )

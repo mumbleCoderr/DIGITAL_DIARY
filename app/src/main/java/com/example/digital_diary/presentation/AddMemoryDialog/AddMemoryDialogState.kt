@@ -7,4 +7,7 @@ data class AddMemoryDialogState(
     val currentAudioPath: String? = null,
     val isPlaying: Boolean = false,
     val isAddingMood: Boolean = false,
+    val isPainting: Boolean = false,
+    val paintedPhotoPath: ByteArray = byteArrayOf(),
+    val paintedText: String = "",
 )

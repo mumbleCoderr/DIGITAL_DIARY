@@ -9,4 +9,5 @@ sealed interface MemoryEvent {
     object ShowDialog: MemoryEvent
     object HideDialog: MemoryEvent
     data class DeleteMemory(val memory: Memory): MemoryEvent
+
 }
