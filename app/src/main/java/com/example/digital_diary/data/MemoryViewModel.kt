@@ -38,12 +38,16 @@ class MemoryViewModel(
                 val audioPath = _state.value.audioPath
                 val description = _state.value.description
                 val mood = _state.value.mood
+                val city = _state.value.city
+                val date = _state.value.date
 
                 val memory = Memory(
                     photoPath = photoPath,
                     audioPath = audioPath,
                     description = description,
                     mood = mood,
+                    city = city,
+                    date = date,
                 )
 
                 viewModelScope.launch {
@@ -97,6 +101,22 @@ class MemoryViewModel(
                 _state.update {
                     it.copy(
                         isAddingMemory = true
+                    )
+                }
+            }
+
+            is MemoryEvent.SetCity -> {
+                _state.update {
+                    it.copy(
+                        city = event.city
+                    )
+                }
+            }
+
+            is MemoryEvent.SetDate -> {
+                _state.update {
+                    it.copy(
+                        date = event.date
                     )
                 }
             }

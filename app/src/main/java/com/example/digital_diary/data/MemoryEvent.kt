@@ -1,5 +1,8 @@
 package com.example.digital_diary.data
 
+import java.time.LocalDate
+import java.util.Date
+
 sealed interface MemoryEvent {
     object SaveMemory: MemoryEvent
     data class SetPhotoPath(val photoPath: ByteArray): MemoryEvent
@@ -9,4 +12,6 @@ sealed interface MemoryEvent {
     object ShowDialog: MemoryEvent
     object HideDialog: MemoryEvent
     data class DeleteMemory(val memory: Memory): MemoryEvent
+    data class SetCity(val city: String?): MemoryEvent
+    data class SetDate(val date: String?): MemoryEvent
 }
