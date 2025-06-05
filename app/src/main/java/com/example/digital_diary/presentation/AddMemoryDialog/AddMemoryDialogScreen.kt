@@ -3,6 +3,7 @@ package com.example.digital_diary.presentation.AddMemoryDialog
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -88,7 +90,9 @@ import com.example.digital_diary.ui.theme.ThirdColor
 import com.example.digital_diary.utils.LocationUtils
 import com.example.digital_diary.utils.VoiceRecorder
 import com.example.digital_diary.utils.byteArrayToBitmap
+import com.example.digital_diary.utils.compressBitmapToByteArray
 import com.example.digital_diary.utils.drawTextOnBottom
+import com.example.digital_diary.utils.saveBitmapToInternalStorage
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,6 +166,7 @@ fun AddMemorySheet(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
+                    onMemoryEvent(MemoryEvent.SetDate(LocalDate.now().toString()))
                     if (ActivityCompat.checkSelfPermission(
                             context,
                             android.Manifest.permission.ACCESS_FINE_LOCATION
@@ -170,7 +175,6 @@ fun AddMemorySheet(
                         LocationUtils.getLastKnownLocation(activity) { location ->
                             val cityName = LocationUtils.getCityName(context, location)
                             onMemoryEvent(MemoryEvent.SetCity(cityName))
-                            onMemoryEvent(MemoryEvent.SetDate(LocalDate.now().toString()))
                             onMemoryEvent(MemoryEvent.SaveMemory)
                             onDismiss()
                         }
@@ -230,7 +234,7 @@ fun MoodPickerDialog(
                 items(memoryState.moodList.size) { index ->
                     IconButton(
                         onClick = {
-                            onMemoryEvent(MemoryEvent.SetMood(index))
+                            onMemoryEvent(MemoryEvent.SetMood(memoryState.moodList[index]))
                             onAddMemoryDialogEvent(AddMemoryDialogEvent.HideDialog)
                         },
                         modifier = Modifier
@@ -267,7 +271,8 @@ fun MediaPicker(
                         inputStream.readBytes()
                     }
                 if (photoByteArray != null) {
-                    onMemoryEvent(MemoryEvent.SetPhotoPath(photoByteArray))
+                    val photoPath = saveBitmapToInternalStorage(context, byteArrayToBitmap(photoByteArray))
+                    onMemoryEvent(MemoryEvent.SetPhotoPath(photoPath))
                 }
             }
         }
@@ -288,7 +293,7 @@ fun MediaPicker(
     )
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    if (addMemoryDialogState.isPainting && memoryState.photoPath.isNotEmpty()) {
+    if (addMemoryDialogState.isPainting && memoryState.photoPath != null) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -314,7 +319,7 @@ fun MediaPicker(
             ) {
                 Button(
                     onClick = {
-                        val originalBitmap = byteArrayToBitmap(memoryState.photoPath)
+                        val originalBitmap = BitmapFactory.decodeFile(memoryState.photoPath)
                         val modifiedBitmap = drawTextOnBottom(
                             bitmap = originalBitmap,
                             text = addMemoryDialogState.paintedText
@@ -322,7 +327,8 @@ fun MediaPicker(
                         val stream = java.io.ByteArrayOutputStream()
                         modifiedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                         val updatedByteArray = stream.toByteArray()
-                        onMemoryEvent(MemoryEvent.SetPhotoPath(updatedByteArray))
+
+                        onMemoryEvent(MemoryEvent.SetPhotoPath(saveBitmapToInternalStorage(context, byteArrayToBitmap(updatedByteArray))))
                         onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
                         onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(""))
                     },
@@ -362,8 +368,8 @@ fun MediaPicker(
         }
         Spacer(modifier = Modifier.height(16.dp))
     }
-    if (memoryState.photoPath.isNotEmpty()) {
-        val bitmap = byteArrayToBitmap(memoryState.photoPath)
+    if (memoryState.photoPath != null) {
+        val bitmap = BitmapFactory.decodeFile(memoryState.photoPath)
         val imageWidth = bitmap.width.toFloat()
 
         val configuration = LocalConfiguration.current
@@ -391,7 +397,7 @@ fun MediaPicker(
                     .clip(RoundedCornerShape(22.dp))
             )
             IconButton(
-                onClick = { onMemoryEvent(MemoryEvent.SetPhotoPath(byteArrayOf())) },
+                onClick = { onMemoryEvent(MemoryEvent.SetPhotoPath(null)) },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(12.dp)
@@ -426,121 +432,39 @@ fun MediaPicker(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             if (memoryState.audioPath != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .fillMaxHeight()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(ThirdColor),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            modifier = Modifier
-                                .size(64.dp),
-                            onClick = {
-                                if (mediaPlayer == null) {
-                                    mediaPlayer = MediaPlayer().apply {
-                                        setDataSource(addMemoryDialogState.currentAudioPath)
-                                        prepare()
-                                        setOnCompletionListener {
-                                            onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
-                                            release()
-                                            mediaPlayer = null
-                                        }
-                                    }
-                                }
-                                mediaPlayer?.let { player ->
-                                    if (player.isPlaying) {
-                                        player.pause()
-                                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
-                                    } else {
-                                        player.start()
-                                        onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPlaying)
-                                    }
+                AudioBox(
+                    isPlaying = addMemoryDialogState.isPlaying,
+                    onPlayPauseToggle = {
+                        if (mediaPlayer == null) {
+                            mediaPlayer = MediaPlayer().apply {
+                                setDataSource(addMemoryDialogState.currentAudioPath)
+                                prepare()
+                                setOnCompletionListener {
+                                    onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                                    release()
+                                    mediaPlayer = null
                                 }
                             }
-                        ) {
-                            Image(
-                                imageVector = if (!addMemoryDialogState.isPlaying) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                                contentDescription = if (addMemoryDialogState.isPlaying) "Pause" else "Play",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                            )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Image(
-                            painter = painterResource(id = R.drawable.sound_waves),
-                            contentDescription = "sound waves",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(78.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = { onMemoryEvent(MemoryEvent.SetAudioPath(null)) },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .size(22.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "remove photo",
-                            tint = Color.White
-                        )
-                    }
-                }
+                        mediaPlayer?.let { player ->
+                            if (player.isPlaying) {
+                                player.pause()
+                                onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPlaying)
+                            } else {
+                                player.start()
+                                onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPlaying)
+                            }
+                        }
+                    },
+                    onRemoveAudio = { onMemoryEvent(MemoryEvent.SetAudioPath(null)) }
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
             if (memoryState.mood != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(ThirdColor),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            repeat(2) {
-                                Image(
-                                    painter = painterResource(memoryState.moodList[memoryState.mood]),
-                                    contentDescription = "mood",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                )
-                            }
-                        }
-                    }
-                    IconButton(
-                        onClick = { onMemoryEvent(MemoryEvent.SetMood(null)) },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .size(22.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "remove photo",
-                            tint = Color.White
-                        )
-                    }
-                }
+                MoodBox(
+                    mood = memoryState.mood,
+                    onRemoveMood = { onMemoryEvent(MemoryEvent.SetMood(null)) }
+                )
             }
         }
     }
@@ -620,7 +544,7 @@ fun MediaPicker(
             modifier = Modifier
                 .size(64.dp),
             onClick = {
-                if (!addMemoryDialogState.isPainting && memoryState.photoPath.isNotEmpty()) {
+                if (!addMemoryDialogState.isPainting && memoryState.photoPath != null) {
                     onAddMemoryDialogEvent(AddMemoryDialogEvent.StartPainting)
                 } else {
                     onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
@@ -636,3 +560,114 @@ fun MediaPicker(
         }
     }
 }
+
+@Composable
+fun AudioBox(
+    isPlaying: Boolean,
+    onPlayPauseToggle: () -> Unit,
+    onRemoveAudio: () -> Unit,
+    showRemoveButton: Boolean = true,
+    fillMaxHeight: Boolean = true,
+    fillMaxWidth: Boolean = false,
+) {
+    Box(
+        modifier = Modifier
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier.fillMaxWidth(0.5f))
+            .then(if (fillMaxHeight) Modifier.fillMaxHeight() else Modifier.fillMaxHeight(0.5f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .background(ThirdColor),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                modifier = Modifier.size(64.dp),
+                onClick = onPlayPauseToggle
+            ) {
+                Icon(
+                    imageVector = if (!isPlaying) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Image(
+                painter = painterResource(id = R.drawable.sound_waves),
+                contentDescription = "sound waves",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(78.dp)
+            )
+        }
+        if(showRemoveButton) {
+            IconButton(
+                onClick = onRemoveAudio,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .size(22.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "remove audio",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MoodBox(
+    mood: Int,
+    onRemoveMood: () -> Unit,
+    showRemoveButton: Boolean = true
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(22.dp))
+                .background(ThirdColor),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(2) {
+                    Image(
+                        painter = painterResource(id = mood),
+                        contentDescription = "mood",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
+            }
+        }
+        if(showRemoveButton) {
+            IconButton(
+                onClick = onRemoveMood,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .size(22.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "remove mood",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+

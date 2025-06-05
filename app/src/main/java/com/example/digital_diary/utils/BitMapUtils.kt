@@ -1,6 +1,7 @@
 package com.example.digital_diary.utils
 
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Paint
@@ -10,6 +11,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.example.digital_diary.ui.theme.ThirdColor
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 
 fun byteArrayToBitmap(byteArray: ByteArray) =
@@ -63,5 +67,26 @@ fun drawTextOnBottom(
 
     return mutableBitmap
 }
+
+fun compressBitmapToByteArray(bitmap: Bitmap, quality: Int = 80, format: Bitmap.CompressFormat = Bitmap.CompressFormat.JPEG): ByteArray {
+    val stream = ByteArrayOutputStream()
+    bitmap.compress(format, quality, stream)
+    return stream.toByteArray()
+}
+
+fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap, filename: String = "memory_${System.currentTimeMillis()}.jpg"): String? {
+    return try {
+        val file = File(context.filesDir, filename)
+        val outputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        outputStream.flush()
+        outputStream.close()
+        file.absolutePath
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
 
 

@@ -48,7 +48,6 @@ class AddMemoryDialogViewModel(): ViewModel() {
                     )
                 }
             }
-
             AddMemoryDialogEvent.HideDialog -> {
                 _state.update {
                     it.copy(

@@ -9,7 +9,7 @@ import java.util.Date
 data class Memory(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val photoPath: ByteArray,
+    val photoPath: String?,
     val audioPath: String?,
     val description: String?,
     val mood: Int?,
