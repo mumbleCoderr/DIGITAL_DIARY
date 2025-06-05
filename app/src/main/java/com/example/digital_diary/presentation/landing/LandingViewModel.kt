@@ -34,6 +34,14 @@ class LandingViewModel: ViewModel() {
                     )
                 }
             }
+
+            is LandingEvent.SetMemoryToEdit -> {
+                _state.update {
+                    it.copy(
+                        memoryToEdit = event.id?.minus(1)
+                    )
+                }
+            }
         }
     }
 }

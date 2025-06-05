@@ -3,7 +3,6 @@ package com.example.digital_diary.presentation.landing
 import android.app.Activity
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
-import android.widget.Space
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,7 +35,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,8 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,14 +62,13 @@ import com.example.digital_diary.data.MemoryViewModel
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogEvent
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogState
 import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogViewModel
-import com.example.digital_diary.presentation.AddMemoryDialog.AddMemorySheet
+import com.example.digital_diary.presentation.AddMemoryDialog.AddMemoryDialogSheet
 import com.example.digital_diary.presentation.AddMemoryDialog.AudioBox
 import com.example.digital_diary.presentation.AddMemoryDialog.MoodBox
 import com.example.digital_diary.presentation.sign_in.UserData
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
-import com.example.digital_diary.utils.byteArrayToBitmap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +83,7 @@ fun LandingScreen(
     activity: Activity,
     onLandingEvent: (LandingEvent) -> Unit,
 ) {
-    val state by landingViewModel.state.collectAsStateWithLifecycle()
+    val landingState by landingViewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
     val memoryState by memoryViewModel.state.collectAsStateWithLifecycle()
     val addMemoryDialogState by addMemoryDialogViewModel.state.collectAsStateWithLifecycle()
@@ -124,7 +118,7 @@ fun LandingScreen(
             ) {
                 item {
                     SearchBar(
-                        value = state.searchBarInput,
+                        value = landingState.searchBarInput,
                         onValueChange = {}/*landingViewModel::onSearchBarInputChange*/
                     )
                 }
@@ -143,20 +137,30 @@ fun LandingScreen(
                         memoryState = memoryState,
                         addMemoryDialogState = addMemoryDialogState,
                         onAddMemoryDialogEvent = onAddMemoryDialogEvent,
-                        onMemoryEvent = onMemoryEvent
+                        onMemoryEvent = onMemoryEvent,
+                        onLandingEvent = onLandingEvent,
+                        landingState = landingState,
                     )
                 }
             }
         }
         if (memoryState.isAddingMemory) {
-            AddMemorySheet(
+            AddMemoryDialogSheet(
                 memoryState = memoryState,
                 onMemoryEvent = { memoryViewModel.onEvent(it) },
                 sheetState = sheetState,
-                onDismiss = { memoryViewModel.onEvent(MemoryEvent.HideDialog) },
+                onDismiss = {
+                    memoryViewModel.onEvent(MemoryEvent.HideDialog)
+                    if(landingState.memoryToEdit != null){
+                        onMemoryEvent(MemoryEvent.ClearMemory)
+                        onLandingEvent(LandingEvent.SetMemoryToEdit(null))
+                    }
+                            },
                 addMemoryDialogState = addMemoryDialogState,
                 onAddMemoryDialogEvent = onAddMemoryDialogEvent,
-                activity = activity
+                activity = activity,
+                landingState = landingState,
+                onLandingEvent = onLandingEvent
             )
         }
     }
@@ -216,7 +220,7 @@ fun SearchBar(
         textStyle = MaterialTheme.typography.labelSmall.copy(),
         placeholder = {
             Text(
-                text = "search for memories...",
+                text = stringResource(R.string.searchbar_placeholder),
                 style = MaterialTheme.typography.labelSmall,
             )
         },
@@ -260,12 +264,18 @@ fun Memory(
     memoryState: MemoryState,
     onMemoryEvent: (MemoryEvent) -> Unit,
     addMemoryDialogState: AddMemoryDialogState,
-    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit
+    onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
+    onLandingEvent: (LandingEvent) -> Unit,
+    landingState: LandingState
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp)),
+            .clip(RoundedCornerShape(22.dp))
+            .clickable {
+                onLandingEvent(LandingEvent.SetMemoryToEdit(memory.id))
+                onMemoryEvent(MemoryEvent.ShowDialog)
+            },
     ) {
         Row(
             modifier = Modifier
@@ -374,7 +384,7 @@ fun MemoryBottomSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(ThirdColor)
                 .padding(
                     top = 8.dp,

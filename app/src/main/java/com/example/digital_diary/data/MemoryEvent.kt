@@ -14,4 +14,5 @@ sealed interface MemoryEvent {
     data class DeleteMemory(val memory: Memory): MemoryEvent
     data class SetCity(val city: String?): MemoryEvent
     data class SetDate(val date: String?): MemoryEvent
+    object ClearMemory: MemoryEvent
 }

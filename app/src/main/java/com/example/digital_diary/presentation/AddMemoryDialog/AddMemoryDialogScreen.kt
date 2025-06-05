@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
-import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,14 +23,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
@@ -40,10 +34,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.TextFields
-import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,8 +48,8 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,35 +60,33 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.ModifierInfo
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
-import androidx.room.util.copy
 import com.example.digital_diary.R
 import com.example.digital_diary.data.MemoryEvent
 import com.example.digital_diary.data.MemoryState
+import com.example.digital_diary.presentation.landing.LandingEvent
+import com.example.digital_diary.presentation.landing.LandingState
 import com.example.digital_diary.ui.theme.BackgroundColor
 import com.example.digital_diary.ui.theme.ButtonColor
 import com.example.digital_diary.ui.theme.ThirdColor
 import com.example.digital_diary.utils.LocationUtils
 import com.example.digital_diary.utils.VoiceRecorder
 import com.example.digital_diary.utils.byteArrayToBitmap
-import com.example.digital_diary.utils.compressBitmapToByteArray
 import com.example.digital_diary.utils.drawTextOnBottom
 import com.example.digital_diary.utils.saveBitmapToInternalStorage
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddMemorySheet(
+fun AddMemoryDialogSheet(
     memoryState: MemoryState,
     onMemoryEvent: (MemoryEvent) -> Unit,
     sheetState: SheetState,
@@ -105,6 +94,8 @@ fun AddMemorySheet(
     addMemoryDialogState: AddMemoryDialogState,
     onAddMemoryDialogEvent: (AddMemoryDialogEvent) -> Unit,
     activity: Activity,
+    landingState: LandingState,
+    onLandingEvent: (LandingEvent) -> Unit
 ) {
     val context = LocalContext.current
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -124,6 +115,21 @@ fun AddMemorySheet(
         }
     )
 
+    if (landingState.memoryToEdit != null) {
+        LaunchedEffect(Unit) {
+            onMemoryEvent(MemoryEvent.SetPhotoPath(memoryState.memories[landingState.memoryToEdit].photoPath))
+            onMemoryEvent(MemoryEvent.SetAudioPath(memoryState.memories[landingState.memoryToEdit].audioPath))
+            onMemoryEvent(
+                MemoryEvent.SetDescription(
+                    memoryState.memories[landingState.memoryToEdit].description ?: ""
+                )
+            )
+            onMemoryEvent(MemoryEvent.SetMood(memoryState.memories[landingState.memoryToEdit].mood))
+            onMemoryEvent(MemoryEvent.SetCity(memoryState.memories[landingState.memoryToEdit].city))
+            onMemoryEvent(MemoryEvent.SetDate(memoryState.memories[landingState.memoryToEdit].date))
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -142,7 +148,7 @@ fun AddMemorySheet(
                 textStyle = MaterialTheme.typography.titleSmall.copy(),
                 placeholder = {
                     Text(
-                        text = "tell me about it...",
+                        text = stringResource(R.string.textfield_placeholder),
                         style = MaterialTheme.typography.titleSmall,
                     )
                 },
@@ -212,7 +218,7 @@ fun MoodPickerDialog(
         confirmButton = {},
         title = {
             Text(
-                text = "what is your mood?",
+                text = stringResource(R.string.picking_mood_alert_title),
                 style = MaterialTheme.typography.titleSmall.copy(
                     color = ThirdColor,
                     textAlign = TextAlign.Center,
@@ -271,7 +277,8 @@ fun MediaPicker(
                         inputStream.readBytes()
                     }
                 if (photoByteArray != null) {
-                    val photoPath = saveBitmapToInternalStorage(context, byteArrayToBitmap(photoByteArray))
+                    val photoPath =
+                        saveBitmapToInternalStorage(context, byteArrayToBitmap(photoByteArray))
                     onMemoryEvent(MemoryEvent.SetPhotoPath(photoPath))
                 }
             }
@@ -305,7 +312,7 @@ fun MediaPicker(
                 onValueChange = { onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(it)) },
                 label = {
                     Text(
-                        text = "Text on photo",
+                        text = stringResource(R.string.painting_textfield_label),
                         style = MaterialTheme.typography.labelSmall
                     )
                 },
@@ -328,7 +335,14 @@ fun MediaPicker(
                         modifiedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                         val updatedByteArray = stream.toByteArray()
 
-                        onMemoryEvent(MemoryEvent.SetPhotoPath(saveBitmapToInternalStorage(context, byteArrayToBitmap(updatedByteArray))))
+                        onMemoryEvent(
+                            MemoryEvent.SetPhotoPath(
+                                saveBitmapToInternalStorage(
+                                    context,
+                                    byteArrayToBitmap(updatedByteArray)
+                                )
+                            )
+                        )
                         onAddMemoryDialogEvent(AddMemoryDialogEvent.StopPainting)
                         onAddMemoryDialogEvent(AddMemoryDialogEvent.InputTextOnPhoto(""))
                     },
@@ -339,7 +353,7 @@ fun MediaPicker(
                     modifier = Modifier.fillMaxWidth(0.5f)
                 ) {
                     Text(
-                        text = "Apply",
+                        text = stringResource(R.string.apply_text_button),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontSize = 20.sp
                         )
@@ -358,7 +372,7 @@ fun MediaPicker(
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = "Decline",
+                        text = stringResource(R.string.decline_text_button),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontSize = 20.sp
                         )
@@ -599,7 +613,7 @@ fun AudioBox(
                 modifier = Modifier.size(78.dp)
             )
         }
-        if(showRemoveButton) {
+        if (showRemoveButton) {
             IconButton(
                 onClick = onRemoveAudio,
                 modifier = Modifier
@@ -652,7 +666,7 @@ fun MoodBox(
                 }
             }
         }
-        if(showRemoveButton) {
+        if (showRemoveButton) {
             IconButton(
                 onClick = onRemoveMood,
                 modifier = Modifier

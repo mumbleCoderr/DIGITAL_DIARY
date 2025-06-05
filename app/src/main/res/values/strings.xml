@@ -15,4 +15,13 @@
     <string name="add_memory_button">Add Memory</string>
 
     <string name="save_memory_button">Save your memory</string>
+
+    <string name="textfield_placeholder">tell me about it...</string>
+    <string name="picking_mood_alert_title">what is your mood?</string>
+    <string name="painting_textfield_label">Text on photo</string>
+
+    <string name="apply_text_button">Apply</string>
+    <string name="decline_text_button">Decline</string>
+
+    <string name="searchbar_placeholder">Search for memories...</string>
 </resources>
