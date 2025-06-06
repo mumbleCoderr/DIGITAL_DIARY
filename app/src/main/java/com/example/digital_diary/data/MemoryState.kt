@@ -21,4 +21,5 @@ data class MemoryState(
     ),
     val city: String? = null,
     val date: String? = null,
+    val memoryId: Int? = null
 )

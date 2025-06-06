@@ -117,6 +117,7 @@ fun AddMemoryDialogSheet(
 
     if (landingState.memoryToEdit != null) {
         LaunchedEffect(Unit) {
+            onMemoryEvent(MemoryEvent.SetMemoryId(memoryState.memories[landingState.memoryToEdit].id))
             onMemoryEvent(MemoryEvent.SetPhotoPath(memoryState.memories[landingState.memoryToEdit].photoPath))
             onMemoryEvent(MemoryEvent.SetAudioPath(memoryState.memories[landingState.memoryToEdit].audioPath))
             onMemoryEvent(

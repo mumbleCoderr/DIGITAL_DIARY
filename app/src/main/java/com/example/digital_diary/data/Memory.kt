@@ -8,7 +8,7 @@ import java.util.Date
 @Entity
 data class Memory(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Int? = null,
     val photoPath: String?,
     val audioPath: String?,
     val description: String?,

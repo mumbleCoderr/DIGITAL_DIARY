@@ -47,6 +47,7 @@ class MemoryViewModel(
                 val mood = _state.value.mood
                 val city = _state.value.city
                 val date = _state.value.date
+                val memoryId = _state.value.memoryId
 
                 val memory = Memory(
                     photoPath = photoPath,
@@ -55,6 +56,7 @@ class MemoryViewModel(
                     mood = mood,
                     city = city,
                     date = date,
+                    id = memoryId
                 )
 
                 viewModelScope.launch {
@@ -69,7 +71,8 @@ class MemoryViewModel(
                         description = null,
                         mood = null,
                         city = null,
-                        date = null
+                        date = null,
+                        memoryId = null,
                     )
                 }
             }
@@ -139,6 +142,14 @@ class MemoryViewModel(
                         mood = null,
                         city = null,
                         date = null
+                    )
+                }
+            }
+
+            is MemoryEvent.SetMemoryId -> {
+                _state.update {
+                    it.copy(
+                        memoryId = event.memoryId
                     )
                 }
             }
